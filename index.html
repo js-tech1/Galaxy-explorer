@@ -545,5 +545,451 @@ window.onerror = function(msg, src, line, col, err) {
 <script src="galaxy.js"></script>
 </body>
 </html>
+  #controls-hint {
+    font-size:8px; letter-spacing:2px; color:rgba(0,255,157,0.4);
+    line-height:1.8;
+  }
+
+  /* SCALE TRANSITIONS HUD */
+  #scale-bar {
+    position:absolute; bottom:80px; left:50%; transform:translateX(-50%);
+    display:flex; gap:8px; align-items:center;
+  }
+  .scale-node {
+    font-size:7px; letter-spacing:2px; padding:3px 8px;
+    border:1px solid rgba(0,255,157,0.2);
+    color:rgba(0,255,157,0.3);
+    transition: all 0.5s;
+  }
+  .scale-node.active {
+    border-color:var(--hud-green);
+    color:var(--hud-green);
+    text-shadow:0 0 10px var(--hud-green);
+    box-shadow:0 0 10px rgba(0,255,157,0.2);
+  }
+  .scale-arrow { color:rgba(0,255,157,0.2); font-size:8px; }
+
+  /* TARGET RETICLE */
+  #reticle {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:24px; height:24px;
+    pointer-events:none;
+  }
+  #reticle::before, #reticle::after {
+    content:''; position:absolute;
+    background: var(--hud-green);
+    opacity:0.5;
+    transition: opacity 0.2s;
+  }
+  #reticle::before { width:24px; height:1px; top:50%; left:0; transform:translateY(-50%); }
+  #reticle::after  { width:1px; height:24px; left:50%; top:0; transform:translateX(-50%); }
+
+  /* Outer targeting ring — hidden by default, shown when star locked */
+  #target-ring {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:40px; height:40px;
+    border-radius:50%;
+    border:1px solid var(--hud-green);
+    box-shadow: 0 0 8px var(--hud-green), inset 0 0 8px rgba(0,255,157,0.1);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  #target-ring.locked {
+    opacity:1;
+    animation: ring-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes ring-pulse {
+    0%,100%{ transform:translate(-50%,-50%) scale(1);   opacity:1; }
+    50%    { transform:translate(-50%,-50%) scale(1.12); opacity:0.6; }
+  }
+
+  /* Star-lock bracket corners around target ring */
+  #target-ring::before, #target-ring::after {
+    content:''; position:absolute;
+    border-color:var(--hud-blue); border-style:solid;
+    width:8px; height:8px;
+  }
+  #target-ring::before {
+    top:-3px; left:-3px;
+    border-width:2px 0 0 2px;
+  }
+  #target-ring::after {
+    bottom:-3px; right:-3px;
+    border-width:0 2px 2px 0;
+  }
+
+  /* STAR INFO POPUP */
+  #star-info {
+    position:absolute; top:50%; left:55%;
+    transform:translateY(-50%);
+    width:210px;
+    border:1px solid rgba(0,207,255,0.5);
+    background: rgba(0,5,20,0.92);
+    padding:14px;
+    display:none;
+    font-size:9px;
+    line-height:1.8;
+    box-shadow: 0 0 20px rgba(0,207,255,0.15);
+  }
+  #star-info.visible { display:block; }
+  #star-info .si-label {
+    font-size:7px; letter-spacing:3px; color:var(--hud-blue); opacity:0.6;
+    margin-bottom:6px;
+  }
+  #star-info .si-name {
+    font-family:'Orbitron',sans-serif;
+    font-size:10px; color:var(--hud-blue);
+    margin-bottom:8px; letter-spacing:2px;
+    text-shadow: 0 0 10px var(--hud-blue);
+  }
+  #star-info .si-row { display:flex; justify-content:space-between; }
+  #star-info .si-key { color:rgba(0,207,255,0.5); }
+  #star-info .si-val { color:var(--hud-green); }
+
+  /* WARP EFFECT */
+  #warp-overlay {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background: radial-gradient(ellipse, transparent 0%, rgba(0,100,255,0.8) 100%);
+    opacity:0; pointer-events:none; z-index:20;
+    transition: opacity 0.3s;
+  }
+  #warp-overlay.active { opacity:1; }
+
+  /* SCANLINE EFFECT */
+  #scanlines {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events:none; z-index:15;
+  }
+
+  /* NOTIFICATION */
+  #notification {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    font-family:'Orbitron',sans-serif;
+    font-size:14px; letter-spacing:6px;
+    color:var(--hud-green);
+    text-shadow: 0 0 30px var(--hud-green), 0 0 60px var(--hud-green);
+    opacity:0; pointer-events:none;
+    text-align:center;
+    transition: opacity 0.5s;
+    z-index:25;
+  }
+
+  /* MINIMAP */
+  #minimap {
+    position:absolute; bottom:100px; right:20px;
+    width:120px; height:120px;
+    border:1px solid rgba(0,255,157,0.2);
+    border-radius:50%;
+    overflow:hidden;
+    background:rgba(0,0,0,0.8);
+  }
+  #minimap canvas { width:100%; height:100%; }
+
+  /* STAR SEARCH */
+  #star-search-wrap {
+    pointer-events: all;
+    margin-top: 16px;
+    text-align: right;
+  }
+  #star-search {
+    width: 100%;
+    background: rgba(0,5,20,0.85);
+    border: 1px solid rgba(0,207,255,0.35);
+    color: var(--hud-blue);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 6px 10px;
+    outline: none;
+    text-transform: uppercase;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #star-search::placeholder {
+    color: rgba(0,207,255,0.3);
+    letter-spacing: 2px;
+  }
+  #star-search:focus {
+    border-color: var(--hud-blue);
+    box-shadow: 0 0 12px rgba(0,207,255,0.25);
+  }
+  #search-results {
+    margin-top: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  #search-results::-webkit-scrollbar { width: 3px; }
+  #search-results::-webkit-scrollbar-track { background: transparent; }
+  #search-results::-webkit-scrollbar-thumb { background: rgba(0,207,255,0.3); }
+  .search-item {
+    font-size: 8px;
+    letter-spacing: 2px;
+    padding: 5px 10px;
+    cursor: pointer;
+    color: var(--hud-blue);
+    background: rgba(0,5,20,0.7);
+    border: 1px solid rgba(0,207,255,0.15);
+    text-align: right;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .search-item:hover {
+    background: rgba(0,207,255,0.12);
+    border-color: rgba(0,207,255,0.5);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(0,207,255,0.2);
+    padding-right: 14px;
+  }
+  .search-item .search-item-type {
+    font-size: 7px;
+    color: rgba(0,255,157,0.5);
+    margin-left: 6px;
+  }
+  #search-label {
+    font-size: 7px;
+    letter-spacing: 3px;
+    color: var(--hud-blue);
+    opacity: 0.6;
+    margin-bottom: 5px;
+    display: block;
+  }
+
+  /* BUTTONS */
+  .hud-btn {
+    pointer-events:all;
+    font-family:'Share Tech Mono',monospace;
+    font-size:8px; letter-spacing:2px;
+    color:var(--hud-green);
+    background:rgba(0,255,157,0.05);
+    border:1px solid rgba(0,255,157,0.3);
+    padding:5px 12px; cursor:pointer;
+    text-transform:uppercase;
+    transition:all 0.2s;
+  }
+  .hud-btn:hover {
+    background:rgba(0,255,157,0.15);
+    box-shadow:0 0 10px rgba(0,255,157,0.3);
+  }
+
+  /* GALAXY MAP MODAL */
+  #galaxy-map {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,10,0.95);
+    z-index:50; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+  }
+  #galaxy-map.open { display:flex; }
+  #galaxy-map canvas { border:1px solid rgba(0,255,157,0.2); }
+  #galaxy-map .gm-title {
+    font-family:'Orbitron',sans-serif;
+    font-size:12px; letter-spacing:8px;
+    color:var(--hud-green); margin-bottom:20px;
+    text-shadow:0 0 20px var(--hud-green);
+  }
+  #galaxy-map .gm-close {
+    margin-top:20px;
+  }
+
+  /* LOADING */
+  #loading {
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:#000007; z-index:100;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:20px;
+  }
+  #loading .ld-title {
+    font-family:'Orbitron',sans-serif;
+    font-size:18px; letter-spacing:10px;
+    color:var(--hud-green);
+    text-shadow:0 0 30px var(--hud-green);
+    animation: pulse 2s infinite;
+  }
+  #loading .ld-sub {
+    font-size:9px; letter-spacing:4px;
+    color:var(--hud-blue); opacity:0.6;
+  }
+  #loading-bar-wrap {
+    width:300px; height:2px;
+    background:rgba(0,255,157,0.1);
+    position:relative;
+  }
+  #loading-bar {
+    height:100%; background:var(--hud-green);
+    box-shadow:0 0 10px var(--hud-green);
+    transition: width 0.3s;
+    width:0%;
+  }
+  #loading-status {
+    font-size:8px; letter-spacing:3px; color:rgba(0,255,157,0.5);
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; }
+    50% { opacity:0.6; }
+  }
+  @keyframes flicker {
+    0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.8} 94%{opacity:1}
+  }
+
+  #hud { animation: flicker 8s infinite; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div id="warp-overlay"></div>
+<div id="scanlines"></div>
+
+<!-- LOADING SCREEN -->
+<div id="loading">
+  <div class="ld-title">MILKY WAY EXPLORER</div>
+  <div class="ld-sub">PROCEDURAL UNIVERSE ENGINE v4.2.1</div>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+  <div id="loading-status">INITIALIZING GALAXY SEED...</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div id="topbar">
+    <div class="title">MILKY WAY EXPLORER</div>
+    <div id="scale-indicator">GALAXY SCALE — OBSERVING FROM OUTSIDE</div>
+  </div>
+
+  <div id="left-panel">
+    <div class="panel-section">
+      <div class="panel-label">// COORDINATES</div>
+      <div class="panel-value" id="coord-x">X: 0.000 kly</div>
+      <div class="panel-value" id="coord-y">Y: 0.000 kly</div>
+      <div class="panel-value" id="coord-z">Z: 0.000 kly</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">// NAVIGATION</div>
+      <div class="panel-value" id="nav-speed">SPEED: 0 c</div>
+      <div class="panel-value" id="nav-dist">DIST TO TARGET: —</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">// LOCAL SECTOR</div>
+      <div class="panel-value" id="sector-id">SEC: —</div>
+      <div class="panel-value" id="star-count">STARS: —</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">// NEARBY OBJECT</div>
+      <div class="panel-value" id="nearby-name">—</div>
+      <div class="panel-value" id="nearby-type">—</div>
+    </div>
+  </div>
+
+  <div id="right-panel">
+    <div class="panel-section">
+      <div class="panel-label">CURRENT SYSTEM //</div>
+      <div class="panel-value" id="sys-name">OBSERVING GALAXY</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">STAR TYPE //</div>
+      <div class="panel-value" id="sys-startype">—</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">PLANETS //</div>
+      <div class="panel-value" id="sys-planets">—</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">SCALE LEVEL //</div>
+      <div class="panel-value" id="scale-level">GALAXY</div>
+    </div>
+    <div class="panel-section" style="pointer-events:all">
+      <button class="hud-btn" onclick="openGalaxyMap()">[ GALAXY MAP ]</button>
+      <br><br>
+      <button class="hud-btn" id="warp-btn" onclick="warpToSelectedStar()" style="display:none">[ WARP JUMP ]</button>
+      <button class="hud-btn" id="land-btn" onclick="handleEnterBtn()" style="display:none">[ ENTER SYSTEM ]</button>
+      <button class="hud-btn" id="back-btn" onclick="zoomOut()" style="display:none">[ ZOOM OUT ]</button>
+    </div>
+
+    <div id="star-search-wrap">
+      <span id="search-label">// STAR SEARCH</span>
+      <input id="star-search" type="text" placeholder="SEARCH STAR..." autocomplete="off" spellcheck="false" />
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+  <div id="scale-bar">
+    <div class="scale-node active" id="sn-galaxy">GALAXY</div>
+    <div class="scale-arrow">→</div>
+    <div class="scale-node" id="sn-sector">SECTOR</div>
+    <div class="scale-arrow">→</div>
+    <div class="scale-node" id="sn-system">SYSTEM</div>
+    <div class="scale-arrow">→</div>
+    <div class="scale-node" id="sn-orbit">ORBIT</div>
+    <div class="scale-arrow">→</div>
+    <div class="scale-node" id="sn-surface">SURFACE</div>
+  </div>
+
+  <div id="reticle"></div>
+  <div id="target-ring"></div>
+
+  <div id="star-info">
+    <div class="si-label">// TARGET ACQUIRED</div>
+    <div class="si-name" id="si-name">STAR NAME</div>
+    <div class="si-row"><span class="si-key">TYPE</span><span class="si-val" id="si-type">—</span></div>
+    <div class="si-row"><span class="si-key">MASS</span><span class="si-val" id="si-mass">—</span></div>
+    <div class="si-row"><span class="si-key">TEMP</span><span class="si-val" id="si-temp">—</span></div>
+    <div class="si-row"><span class="si-key">PLANETS</span><span class="si-val" id="si-planets">—</span></div>
+    <div class="si-row"><span class="si-key">LIFE</span><span class="si-val" id="si-life">—</span></div>
+    <div class="si-row"><span class="si-key">DIST</span><span class="si-val" id="si-dist">—</span></div>
+  </div>
+
+  <div id="minimap"><canvas id="minimap-canvas" width="120" height="120"></canvas></div>
+
+  <div id="bottombar">
+    <div id="controls-hint">
+      SCROLL — ZOOM &nbsp;|&nbsp; DRAG — ORBIT CAMERA &nbsp;|&nbsp; AIM RETICLE AT STAR — TARGET &nbsp;|&nbsp; M — GALAXY MAP<br>
+      W/S — DOLLY IN/OUT &nbsp;|&nbsp; WARP JUMP — TRAVEL TO TARGET &nbsp;|&nbsp; F — QUICK WARP &nbsp;|&nbsp; ESC — ZOOM OUT
+    </div>
+  </div>
+
+  <div id="notification"></div>
+</div>
+
+<!-- GALAXY MAP -->
+<div id="galaxy-map">
+  <div class="gm-title">GALACTIC CARTOGRAPHY — MILKY WAY</div>
+  <canvas id="galaxy-map-canvas" width="600" height="600"></canvas>
+  <button class="hud-btn gm-close" onclick="closeGalaxyMap()">[ CLOSE MAP ]</button>
+</div>
+
+<script>
+// Show any JS crash on screen so we can debug on mobile
+window.onerror = function(msg, src, line, col, err) {
+  var d = document.getElementById('loading-status');
+  if (d) d.textContent = 'ERROR: ' + msg + ' (line ' + line + ')';
+  var b = document.getElementById('loading-bar');
+  if (b) { b.style.background = '#ff2244'; b.style.width = '100%'; }
+  return false;
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js"
+  onerror="document.getElementById('loading-status').textContent='FAILED: Could not load Three.js - check internet'"></script>
+<script src="galaxy.js"></script>
+</body>
+</html>
 
 
