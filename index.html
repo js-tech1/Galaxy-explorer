@@ -2950,8 +2950,8 @@ function createStarSystem(system) {
       createAsteroidBelt(bi, bi + 2.0);
     }
 
-    // Comet belt in outer system
-    _createCometBelt(orbitScales);
+    // Comet belt only spawned when navigating via Star Finder comet category
+    // _createCometBelt(orbitScales); — removed
   }
 
   system.planets.forEach((planet, i) => createPlanetInSystem(planet, i, orbitScales[i]));
@@ -3732,8 +3732,20 @@ function _createCometBelt(orbitScales) {
     });
     const dustMesh = new THREE.Mesh(dustGeo, dustMat);
     dustMesh.rotation.z = 0.15; // slight curve away from sun
+
+    // Initialise position immediately so the comet is never seen as a
+    // vertical spike sitting at the origin before the first animation tick
+    const initAngle = rng.next() * Math.PI * 2;
+    const initR = a * (1 - ecc * ecc) / (1 + ecc * Math.cos(initAngle));
+    const initX = initR * Math.cos(initAngle + omega);
+    const initZ = initR * Math.sin(initAngle + omega);
+    const initY = initR * Math.sin(incl) * Math.sin(initAngle);
+    dustMesh.position.set(initX, initY, initZ);
+    dustMesh.lookAt(0, 0, 0);
+    dustMesh.rotateX(Math.PI);
+
     dustMesh.userData = { cometA:a, cometEcc:ecc, cometIncl:incl, cometOmega:omega,
-                          cometSpeed:speed, cometAngle:rng.next()*Math.PI*2, cometType:'comet' };
+                          cometSpeed:speed, cometAngle:initAngle, cometType:'comet' };
     scene.add(dustMesh); systemObjects.push(dustMesh);
 
     // ── BLUE ION TAIL — narrow, straight, bright blue ─────────
@@ -7171,6 +7183,8 @@ function animate(ts) {
 
   // (galaxy shooting stars handled by _updateShootingStars above)
 
+
+
   // ── Supernova remnant expansion ─────────────────────────────
   for (let i = activeSupernova.length - 1; i >= 0; i--) {
     const sn = activeSupernova[i];
@@ -7914,7 +7928,7 @@ function _updateGalaxyShootingStars(delta) {
   });
 }
 
-// ── STAR CORONA RAYS ──────────────────────────────────────
+
 function _addDepthParallax() {
   // Add extra distant background star layer for parallax depth
   const count = _isMobile ? 1000 : 3000;
@@ -8210,6 +8224,11 @@ window._sfGoToComet = function(starName) {
       if (sysData) {
         enterSystemFromGalaxy(sysData);
         setTimeout(() => {
+          // Spawn comet belt exclusively for Star Finder comet navigation
+          if (selectedSystem) {
+            const orbitScales = selectedSystem.planets.map((_, i) => 4 + i * 6);
+            _createCometBelt(orbitScales);
+          }
           if (!_systemComet) _createSystemComet();
           showNotification('COMET\nDETECTED');
         }, 1200);
