@@ -1,8 +1,50 @@
 <!DOCTYPE html>
+<!--
+Milky Way Explorer – Proprietary Source Code License
+Copyright (c) 2026 Jeet Soni
+All Rights Reserved.
+
+1. Ownership
+   This software, including all source code, assets, algorithms, and related materials (the "Software"), is the exclusive intellectual property of Jeet Soni.
+
+2. License Grant
+   The Software is made publicly visible for viewing and educational reference purposes only.
+   No rights are granted to copy, modify, distribute, sublicense, or use the Software in any project or product without explicit written permission from the author.
+
+3. Restrictions
+   Without prior written permission from Jeet Soni, you may NOT:
+
+• Copy or reproduce any part of the source code
+• Modify or create derivative works from the Software
+• Upload the Software to another repository or platform
+• Redistribute the Software in any form
+• Use the Software for commercial or non-commercial projects
+• Claim the Software or any part of it as your own work
+
+4. Educational Viewing
+   You may view the source code for educational or reference purposes only.
+   Viewing the code does not grant permission to reuse or distribute it.
+
+5. Unauthorized Use
+   Any unauthorized copying, modification, redistribution, or use of this Software is strictly prohibited and may result in legal action.
+
+6. Permission Requests
+   If you wish to use any part of this Software, you must obtain explicit written permission from the author.
+
+Contact: Jeet Soni
+
+7. Disclaimer
+   The Software is provided "as is", without warranty of any kind. The author shall not be liable for any damages arising from the use or inability to use this Software.
+
+By accessing or viewing this repository, you acknowledge and agree to the terms of this license.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Jeet Soni">
+<meta name="copyright" content="Copyright (c) 2026 Jeet Soni. All Rights Reserved.">
+<meta name="license" content="Proprietary — No reproduction or redistribution permitted. See source for full terms.">
 <title>MILKY WAY EXPLORER — Realistic Universe Simulation Engine v7</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
@@ -802,6 +844,10 @@
 
 <script>
 // Show any JS crash on screen so we can debug on mobile
+// ── COPYRIGHT NOTICE ─────────────────────────────────────
+console.log("Milky Way Explorer – Proprietary Source Code License\nCopyright (c) 2026 Jeet Soni\nAll Rights Reserved.\n\n1. Ownership\n   This software, including all source code, assets, algorithms, and related materials (the \"Software\"), is the exclusive intellectual property of Jeet Soni.\n\n2. License Grant\n   The Software is made publicly visible for viewing and educational reference purposes only.\n   No rights are granted to copy, modify, distribute, sublicense, or use the Software in any project or product without explicit written permission from the author.\n\n3. Restrictions\n   Without prior written permission from Jeet Soni, you may NOT:\n\n• Copy or reproduce any part of the source code\n• Modify or create derivative works from the Software\n• Upload the Software to another repository or platform\n• Redistribute the Software in any form\n• Use the Software for commercial or non-commercial projects\n• Claim the Software or any part of it as your own work\n\n4. Educational Viewing\n   You may view the source code for educational or reference purposes only.\n   Viewing the code does not grant permission to reuse or distribute it.\n\n5. Unauthorized Use\n   Any unauthorized copying, modification, redistribution, or use of this Software is strictly prohibited and may result in legal action.\n\n6. Permission Requests\n   If you wish to use any part of this Software, you must obtain explicit written permission from the author.\n\nContact: Jeet Soni\n\n7. Disclaimer\n   The Software is provided \"as is\", without warranty of any kind. The author shall not be liable for any damages arising from the use or inability to use this Software.\n\nBy accessing or viewing this repository, you acknowledge and agree to the terms of this license.");
+// ─────────────────────────────────────────────────────────
+
 window.onerror = function(msg, src, line, col, err) {
   var d = document.getElementById('loading-status');
   if (d) d.textContent = 'ERROR: ' + msg + ' (line ' + line + ')';
@@ -7125,15 +7171,6 @@ function animate(ts) {
 
   // (galaxy shooting stars handled by _updateShootingStars above)
 
-  // ── Corona ray time updates ───────────────────────────────────
-  if (currentState === STATE.SYSTEM || currentState === STATE.ORBIT) {
-    systemObjects.forEach(obj => {
-      if (obj.userData.isCoronaRay && obj.material && obj.material.uniforms) {
-        obj.material.uniforms.time.value = time;
-      }
-    });
-  }
-
   // ── Supernova remnant expansion ─────────────────────────────
   for (let i = activeSupernova.length - 1; i >= 0; i--) {
     const sn = activeSupernova[i];
@@ -7878,40 +7915,6 @@ function _updateGalaxyShootingStars(delta) {
 }
 
 // ── STAR CORONA RAYS ──────────────────────────────────────
-function _createCoronaRays(starRadius, starColor) {
-  // Visible light rays emanating from star — like sun rays through clouds
-  const rayCount = 12;
-  const rays = [];
-  for (let i = 0; i < rayCount; i++) {
-    const angle = (i / rayCount) * Math.PI * 2;
-    const len = starRadius * (3.5 + Math.random() * 4.0);
-    const pts = [
-      new THREE.Vector3(Math.cos(angle) * starRadius * 1.1, Math.sin(angle) * starRadius * 1.1, 0),
-      new THREE.Vector3(Math.cos(angle) * (starRadius + len), Math.sin(angle) * (starRadius + len), 0),
-    ];
-    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        rayAngle: { value: angle },
-        col: { value: starColor.clone() },
-      },
-      vertexShader: `void main(){ gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-      fragmentShader: `uniform float time; uniform float rayAngle; uniform vec3 col;
-        void main(){
-          float flicker=0.4+0.6*abs(sin(time*1.8+rayAngle*3.7));
-          gl_FragColor=vec4(col*1.5, flicker*0.18);
-        }`,
-      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
-    });
-    const line = new THREE.Line(geo, mat);
-    line.userData.isCoronaRay = true;
-    scene.add(line); systemObjects.push(line);
-    rays.push(mat);
-  }
-  return rays;
-}
-
 function _addDepthParallax() {
   // Add extra distant background star layer for parallax depth
   const count = _isMobile ? 1000 : 3000;
